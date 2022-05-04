@@ -97,6 +97,12 @@ def convert_conv(node, params, layers, lambda_func, node_name, keras_name):
         if n_groups == in_channels and n_groups != 1:
             logger.debug('Number of groups is equal to input channels, use DepthWise convolution')
             W = W.transpose(0, 1, 3, 2)
+
+            depth_multiplier = out_channels // in_channels
+            if depth_multiplier != 1:
+                # convert weights to TF layout: [H, W, C, depth_multiplier]
+                W = W.reshape(*W.shape[0:2], -1, depth_multiplier)
+
             if has_bias:
                 weights = [W, bias]
             else:
@@ -108,7 +114,7 @@ def convert_conv(node, params, layers, lambda_func, node_name, keras_name):
                 padding='valid',
                 use_bias=has_bias,
                 activation=None,
-                depth_multiplier=1,
+                depth_multiplier=out_channels // in_channels,
                 weights=weights,
                 dilation_rate=dilation,
                 bias_initializer='zeros', kernel_initializer='zeros',
